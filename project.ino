@@ -13,18 +13,133 @@
 UTFTGLUE lcd(0, 1, 2, 3, 4, 5); // Those are dummy values
 Touch touch;
 Surface surface;
-GUI::Page page;
+
+extern GUI::Page* pages[];
+
+enum class Page {
+	Menu = 0,
+	CalibrateTouch,
+	ConnectToWifi,
+	HostGame,
+	JoinGame,
+};
+
+static Page currentPage;
+
+static void setCurrentPage(Page page) {
+	currentPage = page;
+	surface.reset();
+	VERIFY(pages[int(page)]);
+	pages[int(page)]->init();
+}
+
+
+
+static void openCalibrateTouchPage(void *) { setCurrentPage(Page::CalibrateTouch); }
+static void openConnnectToWifiPage(void *) { setCurrentPage(Page::ConnectToWifi); }
+static void openHostGamePage(void *) { setCurrentPage(Page::HostGame); }
+static void openJoinGamePage(void *) { setCurrentPage(Page::JoinGame); }
+
+static GUI::MenuPage menuPage(
+	openCalibrateTouchPage,
+	openConnnectToWifiPage,
+	openHostGamePage,
+	openJoinGamePage
+);
+
+GUI::Page* pages[] = {
+	&menuPage,
+	nullptr, // TODO
+	nullptr,
+	nullptr,
+	nullptr,
+};
+
+
+
+TaskHandle_t guiTask;
+TaskHandle_t logicTask;
+SemaphoreHandle_t mutex;
 
 void setup() {
 	randomSeed(analogRead(0));
-
-	lcd.InitLCD();
-	lcd.setFont(SmallFont);
-
-	lcd.clrScr();
 	Serial.begin(9600);
+
+	mutex = xSemaphoreCreateMutex();
+
+	xTaskCreatePinnedToCore(
+			guiTaskCode,   /* Task function. */
+			"GUI",         /* name of task. */
+			10000,         /* Stack size of task */
+			nullptr,       /* parameter of the task */
+			1,             /* priority of the task */
+			&guiTask,      /* Task handle to keep track of created task */
+			0);            /* pin task to core 0 */
+
+	xTaskCreatePinnedToCore(
+			logicTaskCode, /* Task function. */
+			"GUI",         /* name of task. */
+			10000,         /* Stack size of task */
+			nullptr,       /* parameter of the task */
+			1,             /* priority of the task */
+			&logicTask,    /* Task handle to keep track of created task */
+			1);            /* pin task to core 1 */
 }
 
+void loop() {
+	delay(10000);
+}
+
+void guiTaskCode(void *) {
+	lcd.InitLCD();
+	lcd.setFont(SmallFont);
+	lcd.clrScr();
+	setCurrentPage(Page::Menu);
+
+	int lastEvent = -1;
+	for (;;) {
+		GUI::Page *page = pages[int(currentPage)];
+
+		touch.poll();
+		Touch::Event touchEvent = touch.event();
+		if (int(touchEvent) != lastEvent) {
+			lastEvent = int(touchEvent);
+			Serial.println(lastEvent);
+		}
+		switch (touchEvent) {
+		case Touch::Event::None:
+			break;
+
+		case Touch::Event::Press:
+			page->onPress(touch.currentPoint());
+			break;
+
+		case Touch::Event::Drag:
+			page->onDrag(touch.currentPoint());
+			break;
+
+		case Touch::Event::Release:
+			page->onRelease();
+			break;
+		}
+
+		page->draw();
+
+		delay(20); // TODO: use timer
+	}
+}
+
+void logicTaskCode(void *) {
+	/*
+	xSemaphoreTake( mutex, TickType_t(10) );
+	xSemaphoreGive( mutex );
+	*/
+	for (;;) {
+		delay(10000);
+	}
+}
+
+/*
 void reportTime(const char *msg, unsigned long time) {
 	lcd.clrScr();
 	lcd.setColor(0, 255, 0);
@@ -67,33 +182,4 @@ void touchTracking() {
 	reportTime("Touch tracking", timer.time());
 	lcd.clrScr();
 }
-
-void loop() {
-	int currentPosition = 40;
-	auto createButton = [&currentPosition](const char *text, void(*callback)(void)) {
-		const int h = 40;
-		GUI::Rect r = GUI::Rect::fromCenter(WIDTH / 2, currentPosition + h / 2, WIDTH * 0.75, h);
-		auto c = GUI::Color::fromHex;
-		currentPosition += h + 40;
-		return GUI::Button(text, callback, r, c("1e88e5"), c("005cb2"), c("212121"));
-	};
-
-	page.addButton(createButton("Bouncing rectangle", bouncingRectangle));
-	page.addButton(createButton("Touch tracking", touchTracking));
-
-	for (;;) {
-		touch.poll();
-		/*
-		TouchPoint touchPt = touch.lastPoint();
-		GUI::Point pt{touchPt.x, touchPt.y};
-		switch (event) {
-		case Touch::Event::Press:   page.press(pt); break;
-		case Touch::Event::Drag:    page.drag(pt); break;
-		case Touch::Event::Release: page.release(); break;
-		default: {}
-		}
-		*/
-		page.draw();
-		delay(20);
-	}
-}
+*/

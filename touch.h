@@ -14,11 +14,7 @@
 class Touch {
 public:
 	enum class Event {
-		None, Touch, Drag
-	};
-
-	struct Drag {
-		Point start, end;
+		None, Press, Drag, Release,
 	};
 
 	Touch();
@@ -29,18 +25,12 @@ public:
 	}
 
 	Point currentPoint() const {
-		VERIFY(m_event != Event::None);
+		VERIFY(m_event == Event::Press || m_event == Event::Drag);
 		return m_currentPoint;
-	}
-
-	Drag currentDrag() const {
-		VERIFY(m_event == Event::Drag);
-		return Drag { m_startPoint, m_currentPoint };
 	}
 
 private:
 	Event m_event;
-	Point m_startPoint;
 	Point m_currentPoint;
 };
 

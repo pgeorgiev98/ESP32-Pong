@@ -14,7 +14,11 @@ struct Point {
 struct Rect {
 	// TODO: These ints can be 16 bit to save memory
 	int x1, y1, x2, y2;
-	bool visible;
+
+	static Rect withCenter(int cx, int cy, int w, int h) {
+		int x1 = cx - w/2, y1 = cy - h/2;
+		return Rect{x1, y1, x1 + w, y1 + h};
+	}
 
 	int width() const {
 		return x2 - x1;
@@ -51,6 +55,10 @@ struct Rect {
 		return !(x1 >= r.x2 || r.x1 >= x2 || y1 >= r.y2 || r.y1 >= y2);
 	}
 
+	bool contains(const Point &p) const {
+		return p.x >= x1 && p.x < x2 && p.y >= y1 && p.y < y2;
+	}
+
 	template<typename Array>
 	static bool getDifference(const Rect &r1, const Rect &r2, Array &outArray) {
 		if (!r1.intersects(r2)) {
@@ -61,26 +69,26 @@ struct Rect {
 
 		if (r1.x1 != r2.x1) { // Left
 			if (r1.x1 <= r2.x1)
-				outArray.append(Rect{r1.x1, r1.y1, r2.x1, r1.y2, false});
+				outArray.append(Rect{r1.x1, r1.y1, r2.x1, r1.y2});
 			else
-				outArray.append(Rect{r2.x1, r2.y1, r1.x1, r2.y2, false});
+				outArray.append(Rect{r2.x1, r2.y1, r1.x1, r2.y2});
 		}
 
 		if (r1.x2 != r2.x2) { // Right
 			if (r1.x2 <= r2.x2)
-				outArray.append(Rect{r1.x2, r2.y1, r2.x2, r2.y2, false});
+				outArray.append(Rect{r1.x2, r2.y1, r2.x2, r2.y2});
 			else
-				outArray.append(Rect{r2.x2, r1.y1, r1.x2, r1.y2, false});
+				outArray.append(Rect{r2.x2, r1.y1, r1.x2, r1.y2});
 		}
 
 		int left = max(r1.x1, r2.x1);
 		int right = min(r1.x2, r2.x2);
 
 		if (r1.y1 != r2.y1) // Bottom
-			outArray.append(Rect{left, min(r1.y1, r2.y1), right, max(r1.y1, r2.y1), false});
+			outArray.append(Rect{left, min(r1.y1, r2.y1), right, max(r1.y1, r2.y1)});
 
 		if (r1.y2 != r2.y2) // Top
-			outArray.append(Rect{left, min(r1.y2, r2.y2), right, max(r1.y2, r2.y2), false});
+			outArray.append(Rect{left, min(r1.y2, r2.y2), right, max(r1.y2, r2.y2)});
 
 		return true;
 	}
@@ -91,8 +99,7 @@ struct Rect {
 				max(r1.x1, r2.x1),
 				max(r1.y1, r2.y1),
 				min(r1.x2, r2.x2),
-				min(r1.y2, r2.y2),
-				false
+				min(r1.y2, r2.y2)
 			};
 			return true;
 		} else {

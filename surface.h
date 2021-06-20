@@ -7,6 +7,41 @@
 
 class Surface {
 public:
+	static Rect globalRect() {
+		return Rect{0, 0, 480, 320};
+	}
+
+	struct Shape {
+		using DrawFunc = void (*)(void *, Rect);
+
+		void *data;
+		DrawFunc drawFunc;
+		Rect rect;
+		bool isVisible;
+		bool isSolid;
+
+		void draw(Rect rect) {
+			drawFunc(data, rect);
+		}
+	};
+
+	/*
+	struct RectShape {
+		static void draw(void *data, Rect rect) {
+			RectShape *r = static_cast<RectShape *>(data);
+			r->rect.draw(rect);
+		}
+
+		RectShape(Color color) : color(color) {}
+
+		void init() {
+		}
+
+		int shapeID;
+		Color color;
+	};
+	*/
+
 	Surface() {}
 
 	void reset() {
@@ -16,40 +51,49 @@ public:
 	}
 
 	const Rect &rectForShape(int shapeID) const {
-		return m_shapes[shapeID];
+		return m_shapes[shapeID].rect;
 	}
 
-	int createRect(int x1, int y1, int x2, int y2, bool visible) {
-		int id = m_shapes.size();
-		Rect r = Rect{x1, y1, x2, y2, visible};
-		m_shapes.append(r);
+	void invalidateRect(Rect rect) {
 		// TODO: Deduplicate invalid zones
-		if (visible)
-			m_invalidZones.append(r);
+		m_invalidZones.append(rect);
+	}
+
+	int createShape(Shape shape) {
+		int id = m_shapes.size();
+		m_shapes.append(shape);
+		// TODO: Deduplicate invalid zones
+		if (shape.isVisible)
+			m_invalidZones.append(shape.rect);
 		return id;
 	}
 
-	void moveShape(int shapeID, int x, int y) {
-		Rect &rect = m_shapes[shapeID];
+	void moveShape(int shapeID, int dx, int dy) {
+		Shape &shape = m_shapes[shapeID];
+		Rect &rect = shape.rect;
 		Rect newRect = rect;
-		newRect.move(x, y);
+		newRect.move(dx, dy);
 		// TODO: Deduplicate invalid zones
-		if (rect.visible)
-			Rect::getDifference(rect, newRect, m_invalidZones);
+		if (shape.isVisible) {
+			if (shape.isSolid)
+				Rect::getDifference(rect, newRect, m_invalidZones);
+			else
+				Rect::getUnion(rect, newRect, m_invalidZones);
+		}
 		rect = newRect;
 	}
 
-	void setRectPos(int rectID, int x, int y) {
-		Rect &rect = m_shapes[rectID];
-		moveShape(rectID, x - rect.x1, y - rect.y1);
+	void setShapePos(int shapeID, int x, int y) {
+		const Rect &rect = m_shapes[shapeID].rect;
+		moveShape(shapeID, x - rect.x1, y - rect.y1);
 	}
 
-	void setShapeVisibility(int shapeID, bool visible) {
-		Rect &rect = m_shapes[shapeID];
-		if (rect.visible != visible) {
-			rect.visible = visible;
+	void setShapeVisibility(int shapeID, bool isVisible) {
+		Shape &shape = m_shapes[shapeID];
+		if (shape.isVisible != isVisible) {
+			shape.isVisible = isVisible;
 			// TODO: Deduplicate invalid zones
-			m_invalidZones.append(rect);
+			m_invalidZones.append(shape.rect);
 		}
 	}
 
@@ -58,17 +102,22 @@ public:
 		for (int i = 0; i < m_invalidZones.size(); ++i)
 			m_invalidZones[i].draw();
 
-		lcd.setColor(255, 0, 0);
+		//lcd.setColor(255, 0, 0);
 		for (int i = 0; i < m_shapes.size(); ++i)
 			for (int j = 0; j < m_invalidZones.size(); ++j)
-				if (m_shapes[i].visible)
+				if (m_shapes[i].isVisible)
 					m_shapes[i].draw(m_invalidZones[j]);
 
 		m_invalidZones.clear();
 	}
 
+	void clear() {
+		m_shapes.clear();
+		m_invalidZones.clear();
+	}
+
 private:
-	Array<Rect, 256> m_shapes;
+	Array<Shape, 256> m_shapes;
 	Array<Rect, 256> m_invalidZones;
 };
 

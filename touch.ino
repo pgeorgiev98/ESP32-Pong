@@ -24,9 +24,7 @@ Touch::Touch()
 void Touch::poll() {
 	int x, y, z;
 	int samples[NUMSAMPLES];
-	uint8_t i, valid;
-
-	valid = 1;
+	uint8_t i;
 
 	pinMode(yp, INPUT);
 	pinMode(ym, INPUT);
@@ -88,18 +86,31 @@ void Touch::poll() {
 	if (isTouched) {
 		switch (m_event) {
 		case Event::None:
-			m_event = Event::Touch;
-			m_startPoint = point;
+		case Event::Release:
+			m_event = Event::Press;
 			break;
-		case Event::Touch:
-			if (m_currentPoint.distanceSquared(point) >= DRAG_THRESHOLD * DRAG_THRESHOLD)
-				m_event = Event::Drag;
+
+		case Event::Press:
+			if (m_currentPoint.distanceSquared(point) < DRAG_THRESHOLD * DRAG_THRESHOLD)
+				point = m_currentPoint;
+			m_event = Event::Drag;
 			break;
+
 		case Event::Drag:
 			break;
 		}
 		m_currentPoint = point;
 	} else {
-		m_event = Event::None;
+		switch (m_event) {
+		case Event::None:
+		case Event::Release:
+			m_event = Event::None;
+			break;
+
+		case Event::Press:
+		case Event::Drag:
+			m_event = Event::Release;
+			break;
+		}
 	}
 }
