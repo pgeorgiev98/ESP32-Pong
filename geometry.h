@@ -4,6 +4,14 @@
 struct Point {
 	int x, y;
 
+	bool operator==(const Point &other) const {
+		return x == other.x && y == other.y;
+	}
+
+	bool operator!=(const Point &other) const {
+		return !(*this == other);
+	}
+
 	int distanceSquared(const Point &other) const {
 		int dx = x - other.x;
 		int dy = y - other.y;

@@ -4,6 +4,7 @@
 #include "gui.h"
 #include "touch.h"
 #include "surface.h"
+#include "calibrate.h"
 
 #include <MCUFRIEND_kbv.h>
 
@@ -14,31 +15,54 @@ UTFTGLUE lcd(0, 1, 2, 3, 4, 5); // Those are dummy values
 Touch touch;
 Surface surface;
 
-extern GUI::Page* pages[];
 
-enum class Page {
-	Menu = 0,
-	CalibrateTouch,
-	ConnectToWifi,
-	HostGame,
-	JoinGame,
+class TestPage : public GUI::Page {
+public:
+	TestPage(void(*callback)(void*))
+		: m_prev({0, 0})
+		, m_curr({0, 0})
+		, m_callback(callback)
+	{}
+
+	void init() override {
+		lcd.clrScr();
+		m_timer.reset();
+	}
+
+	void draw() override {
+		if (m_prev != m_curr) {
+			lcd.setColor(0, 0, 0);
+			Rect{m_prev.x - 20, m_prev.y - 20, m_prev.x + 20, m_prev.y + 20}.draw();
+			lcd.setColor(255, 0, 0);
+			Rect{m_curr.x - 20, m_curr.y - 20, m_curr.x + 20, m_curr.y + 20}.draw();
+			m_prev = m_curr;
+		}
+
+		if (m_timer.time() > 15000)
+			m_callback(nullptr);
+	}
+
+	void onPress(Point p) override {
+		m_curr = p;
+	}
+
+	void onDrag(Point p) override {
+		onPress(p);
+	}
+
+private:
+	Point m_prev;
+	Point m_curr;
+	void(*m_callback)(void*);
+	Timer m_timer;
 };
 
-static Page currentPage;
-
-static void setCurrentPage(Page page) {
+static GUI::Page* currentPage = nullptr;
+static void setCurrentPage(GUI::Page *page) {
+	VERIFY(page);
 	currentPage = page;
-	surface.reset();
-	VERIFY(pages[int(page)]);
-	pages[int(page)]->init();
+	currentPage->init();
 }
-
-
-
-static void openCalibrateTouchPage(void *) { setCurrentPage(Page::CalibrateTouch); }
-static void openConnnectToWifiPage(void *) { setCurrentPage(Page::ConnectToWifi); }
-static void openHostGamePage(void *) { setCurrentPage(Page::HostGame); }
-static void openJoinGamePage(void *) { setCurrentPage(Page::JoinGame); }
 
 static GUI::MenuPage menuPage(
 	openCalibrateTouchPage,
@@ -46,16 +70,14 @@ static GUI::MenuPage menuPage(
 	openHostGamePage,
 	openJoinGamePage
 );
+static CalibratePage calibratePage(openMenuPage);
+static TestPage testPage(openMenuPage);
 
-GUI::Page* pages[] = {
-	&menuPage,
-	nullptr, // TODO
-	nullptr,
-	nullptr,
-	nullptr,
-};
-
-
+static void openMenuPage(void *)           { setCurrentPage(&menuPage); }
+static void openCalibrateTouchPage(void *) { setCurrentPage(&calibratePage); }
+static void openConnnectToWifiPage(void *) { setCurrentPage(&testPage); }
+static void openHostGamePage(void *)       { setCurrentPage(nullptr); }
+static void openJoinGamePage(void *)       { setCurrentPage(nullptr); }
 
 TaskHandle_t guiTask;
 TaskHandle_t logicTask;
@@ -91,39 +113,38 @@ void loop() {
 }
 
 void guiTaskCode(void *) {
+	touch.loadSettings();
+
 	lcd.InitLCD();
 	lcd.setFont(SmallFont);
 	lcd.clrScr();
-	setCurrentPage(Page::Menu);
+	openMenuPage(nullptr);
 
 	int lastEvent = -1;
 	for (;;) {
-		GUI::Page *page = pages[int(currentPage)];
-
 		touch.poll();
 		Touch::Event touchEvent = touch.event();
 		if (int(touchEvent) != lastEvent) {
 			lastEvent = int(touchEvent);
-			Serial.println(lastEvent);
 		}
 		switch (touchEvent) {
 		case Touch::Event::None:
 			break;
 
 		case Touch::Event::Press:
-			page->onPress(touch.currentPoint());
+			currentPage->onPress(touch.currentPoint());
 			break;
 
 		case Touch::Event::Drag:
-			page->onDrag(touch.currentPoint());
+			currentPage->onDrag(touch.currentPoint());
 			break;
 
 		case Touch::Event::Release:
-			page->onRelease();
+			currentPage->onRelease();
 			break;
 		}
 
-		page->draw();
+		currentPage->draw();
 
 		delay(20); // TODO: use timer
 	}

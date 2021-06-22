@@ -170,6 +170,8 @@ namespace GUI {
 		}
 
 		void init() override {
+			surface.reset();
+
 			for (int i = 0; i < m_buttons.size(); ++i)
 				delete m_buttons[i];
 			m_buttons.clear();
