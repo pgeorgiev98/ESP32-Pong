@@ -31,6 +31,10 @@ public:
 		return m_currentPoint;
 	}
 
+	Point lastPoint() const {
+		return m_currentPoint;
+	}
+
 	void setSendRawData(bool sendRawData) {
 		m_sendRawData = sendRawData;
 	}

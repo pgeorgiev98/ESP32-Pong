@@ -33,12 +33,9 @@ public:
 		}
 	}
 
-	void onPress(Point p) override {
-		m_r[m_i] = p;
-	}
-
 	void onRelease() override {
 		m_draw = true;
+		m_r[m_i] = touch.lastPoint();
 		++m_i;
 		if (++m_col > 2) {
 			m_col = 0;
