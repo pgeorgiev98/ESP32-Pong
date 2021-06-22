@@ -17,12 +17,22 @@ public:
 		m_timer.reset();
 	}
 
+	void drawTarget(Point p) {
+		int x = p.x;
+		int y = p.y;
+		lcd.drawRect(x - 10, y - 10, x + 10, y + 10);
+		lcd.drawLine(x - 15, y, x + 15, y);
+		lcd.drawLine(x, y - 15, x, y + 15);
+	}
+
 	void draw() override {
 		if (m_prev != m_curr) {
 			lcd.setColor(0, 0, 0);
-			Rect{m_prev.x - 20, m_prev.y - 20, m_prev.x + 20, m_prev.y + 20}.draw();
-			lcd.setColor(255, 0, 0);
-			Rect{m_curr.x - 20, m_curr.y - 20, m_curr.x + 20, m_curr.y + 20}.draw();
+			drawTarget(m_prev);
+
+			lcd.setColor(255, 255, 255);
+			drawTarget(m_curr);
+
 			m_prev = m_curr;
 		}
 
