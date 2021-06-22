@@ -8,6 +8,8 @@
 #define yp 33
 #define ym 13
 
+#define xm_2 34
+
 #define NUMSAMPLES 3
 
 #define DRAG_THRESHOLD 12
@@ -36,6 +38,9 @@ void Touch::poll() {
 	int samples[NUMSAMPLES];
 	uint8_t i;
 
+	pinMode(xm_2, INPUT);
+	digitalWrite(xm_2, LOW);
+
 	pinMode(yp, INPUT);
 	pinMode(ym, INPUT);
 
@@ -62,7 +67,7 @@ void Touch::poll() {
 	digitalWrite(ym, LOW);
 
 	for (i = 0; i < NUMSAMPLES; i++)
-		samples[i] = analogRead(xm) >> 2;
+		samples[i] = analogRead(xm_2) >> 2;
 
 	y = (1023 - median(samples));
 
@@ -80,7 +85,7 @@ void Touch::poll() {
 	digitalWrite(yp, LOW);
 	pinMode(yp, INPUT);
 
-	int z1 = analogRead(xm) >> 2;
+	int z1 = analogRead(xm_2) >> 2;
 	int z2 = analogRead(yp) >> 2;
 
 	z = (1023 - (z2 - z1));

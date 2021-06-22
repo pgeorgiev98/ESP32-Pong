@@ -23,43 +23,6 @@ namespace GUI {
 		}
 	};
 
-	/*
-	struct Rect {
-		static Rect fromCenter(int centerX, int centerY, int width, int height) {
-			int x1 = centerX - width / 2;
-			int y1 = centerY - height / 2;
-			return Rect{x1, y1, x1 + width, y1 + height};
-		}
-
-		void draw(Color c) const {
-			lcd.setColor(c.r, c.g, c.b);
-			lcd.fillRect(x1, y1, x2, y2);
-		}
-
-		bool contains(Point p) const {
-			return p.x >= x1 && p.x < x2 && p.y >= y1 && p.y < y2;
-		}
-
-		int xCenter() const {
-			return (x1 + x2) / 2;
-		}
-
-		int yCenter() const {
-			return (y1 + y2) / 2;
-		}
-
-		int width() const {
-			return x2 - x1;
-		}
-
-		int height() const {
-			return y2 - y1;
-		}
-
-		int x1, y1, x2, y2;
-	};
-	*/
-
 	class Button {
 	public:
 		typedef void(*ClickCallback)(void *);
@@ -70,7 +33,7 @@ namespace GUI {
 
 		Button() {}
 
-		Button(const char *text, ClickCallback callback, void *callbackData, Rect rect, Color normalColor, Color pressedColor, Color textColor)
+		Button(const String &text, ClickCallback callback, void *callbackData, Rect rect, Color normalColor, Color pressedColor, Color textColor)
 			: m_shapeID(surface.createShape({this, drawFunc, rect, true, false}))
 			, m_text(text)
 			, m_callback(callback)
@@ -98,7 +61,7 @@ namespace GUI {
 				rect.draw();
 				lcd.setColor(m_textColor.r, m_textColor.g, m_textColor.b);
 				lcd.setBackColor(c.r, c.g, c.b);
-				lcd.print(m_text, rect.x1 + 20, rect.y1 + (rect.height() - 15) / 2);
+				lcd.print(m_text, rect.x1 + 20, rect.y1 + (rect.height() - 12) / 2);
 			}
 		}
 
@@ -132,9 +95,22 @@ namespace GUI {
 			}
 		}
 
+		void setCallbackData(void *data) {
+			m_callbackData = data;
+		}
+
+		void setText(const String &text) {
+			m_text = text;
+			update();
+		}
+
+		const String &text() const {
+			return m_text;
+		}
+
 	private:
 		int m_shapeID;
-		const char *m_text;
+		String m_text;
 		ClickCallback m_callback;
 		void *m_callbackData;
 		Color m_normalColor, m_pressedColor, m_textColor;

@@ -8,7 +8,7 @@
 class Surface {
 public:
 	static Rect globalRect() {
-		return Rect{0, 0, 480, 320};
+		return Rect{0, 0, WIDTH, HEIGHT};
 	}
 
 	struct Shape {
@@ -102,13 +102,16 @@ public:
 		for (int i = 0; i < m_invalidZones.size(); ++i)
 			m_invalidZones[i].draw();
 
-		//lcd.setColor(255, 0, 0);
 		for (int i = 0; i < m_shapes.size(); ++i)
 			for (int j = 0; j < m_invalidZones.size(); ++j)
 				if (m_shapes[i].isVisible)
 					m_shapes[i].draw(m_invalidZones[j]);
 
 		m_invalidZones.clear();
+	}
+
+	void update() {
+		invalidateRect(globalRect());
 	}
 
 	void clear() {

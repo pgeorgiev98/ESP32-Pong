@@ -7,11 +7,12 @@
 #include "calibrate.h"
 #include "menupage.h"
 #include "touchtestpage.h"
+#include "wifi.h"
 
 #include <MCUFRIEND_kbv.h>
 
 // 480 x 320
-// Origin is at the Bottom-Left
+// Origin is at the Top-Left
 
 UTFTGLUE lcd(0, 1, 2, 3, 4, 5); // Those are dummy values
 Touch touch;
@@ -32,18 +33,22 @@ static MenuPage menuPage(
 );
 static CalibratePage calibratePage(openMenuPage);
 static TouchTestPage touchTestPage(openMenuPage);
+static SelectWifiNetworkPage selectWifiNetworkPage;
 
 static void openMenuPage(void *)           { setCurrentPage(&menuPage); }
 static void openCalibrateTouchPage(void *) { setCurrentPage(&calibratePage); }
 static void openTouchTestPage(void*)       { setCurrentPage(&touchTestPage); }
 static void openHostGamePage(void *)       { setCurrentPage(nullptr); }
-static void openJoinGamePage(void *)       { setCurrentPage(nullptr); }
+static void openJoinGamePage(void *)       { setCurrentPage(&selectWifiNetworkPage); }
 
 TaskHandle_t guiTask;
 TaskHandle_t logicTask;
 SemaphoreHandle_t mutex;
 
 void setup() {
+	disableCore0WDT();
+	disableCore1WDT();
+
 	randomSeed(analogRead(0));
 	Serial.begin(9600);
 

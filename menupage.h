@@ -20,6 +20,7 @@ public:
 	~MenuPage() {
 		for (int i = 0; i < m_buttons.size(); ++i)
 			delete m_buttons[i];
+		m_buttons.clear();
 	}
 
 	void init() override {
