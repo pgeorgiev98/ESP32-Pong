@@ -5,6 +5,8 @@
 #include "touch.h"
 #include "surface.h"
 #include "calibrate.h"
+#include "menupage.h"
+#include "touchtestpage.h"
 
 #include <MCUFRIEND_kbv.h>
 
@@ -15,48 +17,6 @@ UTFTGLUE lcd(0, 1, 2, 3, 4, 5); // Those are dummy values
 Touch touch;
 Surface surface;
 
-
-class TestPage : public GUI::Page {
-public:
-	TestPage(void(*callback)(void*))
-		: m_prev({0, 0})
-		, m_curr({0, 0})
-		, m_callback(callback)
-	{}
-
-	void init() override {
-		lcd.clrScr();
-		m_timer.reset();
-	}
-
-	void draw() override {
-		if (m_prev != m_curr) {
-			lcd.setColor(0, 0, 0);
-			Rect{m_prev.x - 20, m_prev.y - 20, m_prev.x + 20, m_prev.y + 20}.draw();
-			lcd.setColor(255, 0, 0);
-			Rect{m_curr.x - 20, m_curr.y - 20, m_curr.x + 20, m_curr.y + 20}.draw();
-			m_prev = m_curr;
-		}
-
-		if (m_timer.time() > 15000)
-			m_callback(nullptr);
-	}
-
-	void onPress(Point p) override {
-		m_curr = p;
-	}
-
-	void onDrag(Point p) override {
-		onPress(p);
-	}
-
-private:
-	Point m_prev;
-	Point m_curr;
-	void(*m_callback)(void*);
-	Timer m_timer;
-};
-
 static GUI::Page* currentPage = nullptr;
 static void setCurrentPage(GUI::Page *page) {
 	VERIFY(page);
@@ -64,18 +24,18 @@ static void setCurrentPage(GUI::Page *page) {
 	currentPage->init();
 }
 
-static GUI::MenuPage menuPage(
+static MenuPage menuPage(
 	openCalibrateTouchPage,
-	openConnnectToWifiPage,
+	openTouchTestPage,
 	openHostGamePage,
 	openJoinGamePage
 );
 static CalibratePage calibratePage(openMenuPage);
-static TestPage testPage(openMenuPage);
+static TouchTestPage touchTestPage(openMenuPage);
 
 static void openMenuPage(void *)           { setCurrentPage(&menuPage); }
 static void openCalibrateTouchPage(void *) { setCurrentPage(&calibratePage); }
-static void openConnnectToWifiPage(void *) { setCurrentPage(&testPage); }
+static void openTouchTestPage(void*)       { setCurrentPage(&touchTestPage); }
 static void openHostGamePage(void *)       { setCurrentPage(nullptr); }
 static void openJoinGamePage(void *)       { setCurrentPage(nullptr); }
 
