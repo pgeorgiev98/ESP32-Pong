@@ -81,7 +81,10 @@ void guiTaskCode(void *) {
 	openMenuPage(nullptr);
 
 	int lastEvent = -1;
+	Timer frameTimer;
 	for (;;) {
+		frameTimer.reset();
+
 		touch.poll();
 		Touch::Event touchEvent = touch.event();
 		if (int(touchEvent) != lastEvent) {
@@ -106,7 +109,8 @@ void guiTaskCode(void *) {
 
 		currentPage->draw();
 
-		delay(20); // TODO: use timer
+		int frameTime = frameTimer.time();
+		delay(max(0, 17 - frameTime)); // Target ~60 FPS
 	}
 }
 
