@@ -62,9 +62,8 @@ public:
 	int createShape(Shape shape) {
 		int id = m_shapes.size();
 		m_shapes.append(shape);
-		// TODO: Deduplicate invalid zones
 		if (shape.isVisible)
-			m_invalidZones.append(shape.rect);
+			invalidateRect(shape.rect);
 		return id;
 	}
 
@@ -92,8 +91,7 @@ public:
 		Shape &shape = m_shapes[shapeID];
 		if (shape.isVisible != isVisible) {
 			shape.isVisible = isVisible;
-			// TODO: Deduplicate invalid zones
-			m_invalidZones.append(shape.rect);
+			invalidateRect(shape.rect);
 		}
 	}
 

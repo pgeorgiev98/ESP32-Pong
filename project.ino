@@ -7,7 +7,8 @@
 #include "calibrate.h"
 #include "menupage.h"
 #include "touchtestpage.h"
-#include "wifi.h"
+#include "selectnetwork.h"
+#include "hostgame.h"
 
 #include <MCUFRIEND_kbv.h>
 
@@ -33,12 +34,13 @@ static MenuPage menuPage(
 );
 static CalibratePage calibratePage(openMenuPage);
 static TouchTestPage touchTestPage(openMenuPage);
+static HostGamePage hostGamePage;
 static SelectWifiNetworkPage selectWifiNetworkPage;
 
 static void openMenuPage(void *)           { setCurrentPage(&menuPage); }
 static void openCalibrateTouchPage(void *) { setCurrentPage(&calibratePage); }
-static void openTouchTestPage(void*)       { setCurrentPage(&touchTestPage); }
-static void openHostGamePage(void *)       { setCurrentPage(nullptr); }
+static void openTouchTestPage(void *)      { setCurrentPage(&touchTestPage); }
+static void openHostGamePage(void *)       { setCurrentPage(&hostGamePage); }
 static void openJoinGamePage(void *)       { setCurrentPage(&selectWifiNetworkPage); }
 
 TaskHandle_t guiTask;

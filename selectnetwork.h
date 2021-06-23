@@ -1,5 +1,5 @@
-#ifndef WIFI_H_INCLUDED
-#define WIFI_H_INCLUDED
+#ifndef SELECTNETWORK_H_INCLUDED
+#define SELECTNETWORK_H_INCLUDED
 
 #include "array.h"
 #include "gui.h"
