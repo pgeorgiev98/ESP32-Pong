@@ -25,6 +25,8 @@ public:
 		setPosition(m_player, position);
 	}
 
+	void setBallPosition(Point p);
+
 	void draw() override;
 
 	void init() override;
@@ -37,6 +39,11 @@ private:
 	int m_player;
 	int m_position[2];
 	int m_playerShapeIDs[2];
+	Point m_ballPos;
+	Point m_ballSpeed;
+	int m_ballID;
+	Timer m_gameOverTimer;
+	bool m_gameOver;
 };
 
 #endif

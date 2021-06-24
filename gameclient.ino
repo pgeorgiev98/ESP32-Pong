@@ -24,6 +24,11 @@ void GameClient::onMessage(const Message &m, IPAddress ip) {
 			break;
 		}
 
+		case Message::Type::BallMoved: {
+			guiQueue.push(m);
+			break;
+		}
+
 		default: {}
 
 		}

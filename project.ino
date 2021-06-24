@@ -126,6 +126,13 @@ void guiTaskCode(void *) {
 				break;
 			}
 
+			case Message::Type::BallMoved: {
+				if (currentPage == &gamePage) {
+					gamePage.setBallPosition(Point{m.data.ballMoved.x, m.data.ballMoved.y});
+				}
+				break;
+			}
+
 			default: {}
 
 			}
@@ -207,6 +214,16 @@ void logicTaskCode(void *) {
 					}
 				}
 				break;
+			}
+
+			case Message::Type::BallMoved: {
+				if (currentPage == &gamePage) {
+					if (isHost) {
+						gameServer.sendMessage(m);
+					} else {
+						guiQueue.push(m);
+					}
+				}
 			}
 
 			default: {}
