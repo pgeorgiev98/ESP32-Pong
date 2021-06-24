@@ -11,11 +11,11 @@ public:
 	GameClient();
 	bool connect();
 	void tick();
-	void onMessage(const Message &m) override;
+	void sendMessage(const Message &m);
+	void onMessage(const Message &m, IPAddress ip) override;
 
 private:
-	WiFiClient m_client;
-	bool m_connected;
+	WiFiUDP m_client;
 };
 
 

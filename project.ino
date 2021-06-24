@@ -186,9 +186,9 @@ void logicTaskCode(void *) {
 					delay(100);
 				ok = (r == WL_CONNECTED);
 				if (ok) {
-					if ((ok = gameClient.connect())) {
-						guiQueue.push(Message::joinedGame());
-					}
+					gameClient.begin();
+					gameClient.sendMessage(Message::joinedGame());
+					guiQueue.push(Message::joinedGame());
 				}
 
 				if (!ok) {

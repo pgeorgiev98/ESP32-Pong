@@ -1,29 +1,31 @@
 #include "gameclient.h"
 #include "gamecommon.h"
 
+static const IPAddress SERVER_IP = IPAddress(192, 168, 4, 1);
+
 GameClient::GameClient()
 	: Messenger(m_client)
 {}
 
-bool GameClient::connect() {
-	m_connected = m_client.connect(IPAddress(192, 168, 4, 1), SERVER_PORT);
-	return r;
-}
-
 void GameClient::tick() {
-	if (m_connected)
-		Messenger::poll();
+	Messenger::poll();
 }
 
-void GameClient::onMessage(const Message &m) {
-	switch (m.type) {
+void GameClient::sendMessage(const Message &m) {
+	Messenger::sendMessage(SERVER_IP, m);
+}
 
-	case Message::Type::PlayerMoved: {
-		guiQueue.push(m);
-		break;
-	}
+void GameClient::onMessage(const Message &m, IPAddress ip) {
+	if (ip == SERVER_IP) {
+		switch (m.type) {
 
-	default: {}
+		case Message::Type::PlayerMoved: {
+			guiQueue.push(m);
+			break;
+		}
 
+		default: {}
+
+		}
 	}
 }

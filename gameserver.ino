@@ -7,40 +7,40 @@ extern MessageQueue guiQueue;
 GameServer::GameServer()
 	: Messenger(m_client)
 	, m_state(State::Disabled)
-	, m_server(SERVER_PORT)
 {}
 
 void GameServer::begin() {
 	WiFi.softAP(m_ssid, m_pass);
-	m_server.begin();
 	m_state = State::WaitingForConnection;
+	m_clientIP = IPAddress();
+	Messenger::begin();
 }
 
 void GameServer::tick() {
-	switch (m_state) {
-	case State::WaitingForConnection: {
-		if (m_server.hasClient()) {
-			m_client = m_server.available();
+   Messenger::poll();
+}
+
+void GameServer::sendMessage(const Message &m) {
+	VERIFY(m_state == State::Connected);
+	Messenger::sendMessage(m_clientIP, m);
+}
+
+void GameServer::onMessage(const Message &m, IPAddress ip) {
+	switch (m.type) {
+
+	case Message::Type::JoinedGame: {
+		if (m_state == State::WaitingForConnection) {
+			m_clientIP = ip;
 			guiQueue.push(Message::joinedGame());
 			m_state = State::Connected;
-	  	}
+		}
 		break;
 	}
 
-	case State::Connected: {
-	   Messenger::poll();
-	   break;
-	}
-
-	default: {}
-	}
-}
-
-void GameServer::onMessage(const Message &m) {
-	switch (m.type) {
-
 	case Message::Type::PlayerMoved: {
-		guiQueue.push(m);
+		if (m_state == State::Connected && ip == m_clientIP) {
+			guiQueue.push(m);
+		}
 		break;
 	}
 

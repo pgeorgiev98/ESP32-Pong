@@ -11,7 +11,8 @@ public:
 	GameServer();
 	void begin();
 	void tick();
-	void onMessage(const Message &m) override;
+	void onMessage(const Message &m, IPAddress ip) override;
+	void sendMessage(const Message &m);
 
 private:
 	static constexpr const char *m_ssid = "ESP32-Project";
@@ -24,8 +25,8 @@ private:
 	};
 	State m_state;
 
-	WiFiServer m_server;
-	WiFiClient m_client;
+	WiFiUDP m_client;
+	IPAddress m_clientIP;
 };
 
 #endif
