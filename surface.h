@@ -5,6 +5,8 @@
 #include "array.h"
 #include "geometry.h"
 
+#include <functional>
+
 class Surface {
 public:
 	static Rect globalRect() {
@@ -12,35 +14,17 @@ public:
 	}
 
 	struct Shape {
-		using DrawFunc = void (*)(void *, Rect);
+		using DrawFunc = std::function<void(Rect)>;
 
-		void *data;
 		DrawFunc drawFunc;
 		Rect rect;
 		bool isVisible;
 		bool isSolid;
 
 		void draw(Rect rect) {
-			drawFunc(data, rect);
+			drawFunc(rect);
 		}
 	};
-
-	/*
-	struct RectShape {
-		static void draw(void *data, Rect rect) {
-			RectShape *r = static_cast<RectShape *>(data);
-			r->rect.draw(rect);
-		}
-
-		RectShape(Color color) : color(color) {}
-
-		void init() {
-		}
-
-		int shapeID;
-		Color color;
-	};
-	*/
 
 	Surface() {}
 

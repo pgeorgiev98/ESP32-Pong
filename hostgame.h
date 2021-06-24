@@ -3,6 +3,7 @@
 
 #include "gui.h"
 #include "surface.h"
+#include "common.h"
 
 class HostGamePage : public GUI::Page {
 public:
@@ -10,14 +11,14 @@ public:
 
 	void init() override {
 		lcd.clrScr();
-		WiFi.softAP(m_ssid, m_pass);
+		logicQueue.push(Message::hostGame());
 		m_needsRedraw = true;
 	}
 
 	void draw() override {
 		if (m_needsRedraw) {
 			lcd.setColor(100, 100, 100);
-			Rect rect {int(WIDTH * 0.2), HEIGHT / 2 - 70, int(WIDTH * 0.9), HEIGHT / 2 + 70};
+			Rect rect {int(WIDTH * 0.1), HEIGHT / 2 - 70, int(WIDTH * 0.9), HEIGHT / 2 + 70};
 			rect.draw();
 			lcd.setColor(255, 255, 255);
 			lcd.setBackColor(100, 100, 100);
@@ -28,9 +29,6 @@ public:
 	}
 
 private:
-	static constexpr const char *m_ssid = "ESP32-Project";
-	static constexpr const char *m_pass = "password";
-
 	bool m_needsRedraw;
 };
 

@@ -9,6 +9,10 @@
 #include "touchtestpage.h"
 #include "selectnetwork.h"
 #include "hostgame.h"
+#include "gamepage.h"
+#include "common.h"
+#include "gameserver.h"
+#include "gameclient.h"
 
 #include <MCUFRIEND_kbv.h>
 
@@ -36,6 +40,7 @@ static CalibratePage calibratePage(openMenuPage);
 static TouchTestPage touchTestPage(openMenuPage);
 static HostGamePage hostGamePage;
 static SelectWifiNetworkPage selectWifiNetworkPage;
+static GamePage gamePage;
 
 static void openMenuPage(void *)           { setCurrentPage(&menuPage); }
 static void openCalibrateTouchPage(void *) { setCurrentPage(&calibratePage); }
@@ -45,7 +50,9 @@ static void openJoinGamePage(void *)       { setCurrentPage(&selectWifiNetworkPa
 
 TaskHandle_t guiTask;
 TaskHandle_t logicTask;
-SemaphoreHandle_t mutex;
+
+MessageQueue guiQueue;
+MessageQueue logicQueue;
 
 void setup() {
 	disableCore0WDT();
@@ -54,8 +61,6 @@ void setup() {
 	randomSeed(analogRead(0));
 	Serial.begin(9600);
 
-	mutex = xSemaphoreCreateMutex();
-
 	xTaskCreatePinnedToCore(
 			guiTaskCode,   /* Task function. */
 			"GUI",         /* name of task. */
@@ -63,7 +68,7 @@ void setup() {
 			nullptr,       /* parameter of the task */
 			1,             /* priority of the task */
 			&guiTask,      /* Task handle to keep track of created task */
-			0);            /* pin task to core 0 */
+			1);            /* pin task to core 0 */
 
 	xTaskCreatePinnedToCore(
 			logicTaskCode, /* Task function. */
@@ -72,7 +77,7 @@ void setup() {
 			nullptr,       /* parameter of the task */
 			1,             /* priority of the task */
 			&logicTask,    /* Task handle to keep track of created task */
-			1);            /* pin task to core 1 */
+			0);            /* pin task to core 1 */
 }
 
 void loop() {
@@ -80,6 +85,7 @@ void loop() {
 }
 
 void guiTaskCode(void *) {
+	Message m;
 	touch.loadSettings();
 
 	lcd.InitLCD();
@@ -91,6 +97,39 @@ void guiTaskCode(void *) {
 	Timer frameTimer;
 	for (;;) {
 		frameTimer.reset();
+
+		while (guiQueue.wait(m)) {
+			switch (m.type) {
+
+			case Message::Type::JoinedGame: {
+				if (currentPage == &selectWifiNetworkPage) {
+					setCurrentPage(&gamePage);
+					gamePage.setPlayer(1);
+				} else if (currentPage == &hostGamePage) {
+					setCurrentPage(&gamePage);
+					gamePage.setPlayer(0);
+				}
+				break;
+			}
+
+			case Message::Type::FailedToJoin: {
+				if (currentPage == &selectWifiNetworkPage) {
+					selectWifiNetworkPage.onFailedToConnect();
+				}
+				break;
+			}
+
+			case Message::Type::PlayerMoved: {
+				if (currentPage == &gamePage) {
+					gamePage.setOponentPosition(m.data.playerMoved.position);
+				}
+				break;
+			}
+
+			default: {}
+
+			}
+		}
 
 		touch.poll();
 		Touch::Event touchEvent = touch.event();
@@ -121,57 +160,61 @@ void guiTaskCode(void *) {
 	}
 }
 
+static GameServer gameServer;
+static GameClient gameClient;
 void logicTaskCode(void *) {
-	/*
-	xSemaphoreTake( mutex, TickType_t(10) );
-	xSemaphoreGive( mutex );
-	*/
+	Message m;
+	bool isHost = false;
 	for (;;) {
-		delay(10000);
-	}
-}
+		while (logicQueue.wait(m)) {
+			switch (m.type) {
 
-/*
-void reportTime(const char *msg, unsigned long time) {
-	lcd.clrScr();
-	lcd.setColor(0, 255, 0);
-	lcd.setBackColor(0, 0, 255);
-	lcd.print(msg, CENTER, 150);
-	lcd.printNumI(time, CENTER, 165);
-	delay(3000);
-}
+			case Message::Type::HostGame: {
+				isHost = true;
+				gameServer.begin();
+				break;
+			}
 
-static const unsigned long sceneTime = 10000;
+			case Message::Type::JoinGame: {
+				isHost = false;
+				String ssid = WiFi.SSID(m.data.joinGame.ssid);
+				bool ok;
+				WiFi.mode(WIFI_STA);
+				WiFi.disconnect();
+				int r = WiFi.begin(ssid.c_str(), "password");
+				while ((r = WiFi.status()) == WL_DISCONNECTED)
+					delay(100);
+				ok = (r == WL_CONNECTED);
+				if (ok) {
+					if ((ok = gameClient.connect())) {
+						guiQueue.push(Message::joinedGame());
+					}
+				}
 
-void bouncingRectangle() {
-	surface.reset();
-	Timer timer;
-	int rect = surface.createRect(100, 0, 140, 40, true);
-	while (timer.time() < sceneTime) {
-		for (int i = 0; i < 360; ++i) {
-			int pos = int(200 * abs(sin(i * 3.14 / 180.0)));
-			surface.moveShape(rect, 0, pos - surface.rectForShape(rect).y1);
-			surface.draw();
-			delay(10);
+				if (!ok) {
+					guiQueue.push(Message::failedToJoin());
+				}
+
+				break;
+			}
+
+			case Message::Type::PlayerMoved: {
+				if (currentPage == &gamePage) {
+					if (isHost) {
+						gameServer.sendMessage(m);
+					} else {
+						gameClient.sendMessage(m);
+					}
+				}
+				break;
+			}
+
+			default: {}
+
+			}
 		}
-	}
-	reportTime("Bouncing rectangle", timer.time());
-	lcd.clrScr();
-}
-
-void touchTracking() {
-	surface.reset();
-	Timer timer;
-	int rect = surface.createRect(0, 0, 40, 40, false);
-	while (timer.time() < sceneTime) {
-		Point pt = touch.currentPoint();
-		if (touch.event() != Touch::Event::None)
-			surface.setRectPos(rect, pt.x - 20, pt.y - 20);
-		surface.setShapeVisibility(rect, touch.event() != Touch::Event::None);
-		surface.draw();
+		gameServer.tick();
+		gameClient.tick();
 		delay(20);
 	}
-	reportTime("Touch tracking", timer.time());
-	lcd.clrScr();
 }
-*/

@@ -5,6 +5,8 @@
 #include "array.h"
 #include "surface.h"
 
+#include <functional>
+
 namespace GUI {
 	struct Color {
 		byte r, g, b;
@@ -25,7 +27,7 @@ namespace GUI {
 
 	class Button {
 	public:
-		typedef void(*ClickCallback)(void *);
+		typedef std::function<void(void*)> ClickCallback;
 
 		static void drawFunc(void *button, Rect rect) {
 			static_cast<Button *>(button)->draw(rect);
@@ -34,7 +36,7 @@ namespace GUI {
 		Button() {}
 
 		Button(const String &text, ClickCallback callback, void *callbackData, Rect rect, Color normalColor, Color pressedColor, Color textColor)
-			: m_shapeID(surface.createShape({this, drawFunc, rect, true, false}))
+			: m_shapeID(surface.createShape({[this](Rect r) { this->draw(r); }, rect, true, false}))
 			, m_text(text)
 			, m_callback(callback)
 			, m_callbackData(callbackData)
